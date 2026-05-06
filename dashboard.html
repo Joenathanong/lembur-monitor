@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LemburMonitor — Dashboard</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- ===== TOPBAR ===== -->
+<div class="topbar">
+  <a class="logo" href="dashboard.html">Lembur<span>Monitor</span></a>
+  <div class="div-badge" id="top-div-badge">—</div>
+  <div class="nav">
+    <button class="nav-btn active" onclick="gotoPage('dashboard',this)">Dashboard</button>
+    <button class="nav-btn" onclick="gotoPage('input',this)">Input Lembur</button>
+    <button class="nav-btn" onclick="gotoPage('rekap',this)">Rekap & Export</button>
+    <button class="nav-btn" onclick="gotoPage('karyawan',this)">Karyawan</button>
+    <button class="nav-btn" onclick="gotoPage('pengaturan',this)" id="nav-pengaturan" style="display:none">Pengaturan</button>
+  </div>
+  <button class="logout-btn" onclick="logout()">Keluar</button>
+</div>
+
+<!-- ===== CONTENT ===== -->
+<div class="content">
+
+<!-- Divisi Selector (hanya ADMIN) -->
+<div class="div-selector" id="div-selector" style="display:none">
+  <button class="div-opt active" onclick="setActiveDiv('FGWH')">FGWH</button>
+  <button class="div-opt" onclick="setActiveDiv('RMWH')">RMWH</button>
+  <button class="div-opt" onclick="setActiveDiv('PMWH')">PMWH</button>
+</div>
+
+<!-- ===== DASHBOARD ===== -->
+<div class="page active" id="page-dashboard">
+  <div class="grid4" style="margin-bottom:16px">
+    <div class="metric-card">
+      <div class="metric-label">Lembur Hari Ini</div>
+      <div class="metric-val" id="m-today">—</div>
+      <div class="metric-sub">karyawan</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Jam Minggu Ini (FTW)</div>
+      <div class="metric-val" id="m-week">—</div>
+      <div class="metric-sub">jam</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Jam Bulan Ini (MTD)</div>
+      <div class="metric-val" id="m-mtd">—</div>
+      <div class="metric-sub">jam</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Peringatan</div>
+      <div class="metric-val" id="m-warn" style="color:#E24B4A">—</div>
+      <div class="metric-sub">&gt;14 jam/minggu</div>
+    </div>
+  </div>
+  <div class="grid2" style="margin-bottom:16px">
+    <div class="card">
+      <div class="card-title">Jam Lembur — 7 Hari Terakhir</div>
+      <div class="chart-wrap"><canvas id="chart-daily"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Distribusi per Bagian (MTD)</div>
+      <div class="chart-wrap"><canvas id="chart-dept"></canvas></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Akumulasi Lembur Karyawan — Bulan Ini</div>
+    <table>
+      <thead><tr><th>Nama</th><th>Bagian</th><th>Status</th><th>Jam MTD</th><th>Jam FTW</th><th>Upah MTD</th><th>UMR Dipakai</th><th>Status Minggu</th></tr></thead>
+      <tbody id="top-emp-body"><tr><td colspan="8" class="empty">Memuat data...</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ===== INPUT LEMBUR ===== -->
+<div class="page" id="page-input">
+  <div class="section-head">
+    <h2>Input Lembur — <span id="inp-div-title">—</span></h2>
+    <span class="small text-muted" id="tgl-info"></span>
+  </div>
+  <div id="inp-alert"></div>
+
+  <div class="card">
+    <div class="card-title">Informasi Lembur</div>
+    <div class="grid2" style="gap:12px">
+      <div>
+        <label>Tanggal Lembur *</label>
+        <input type="date" id="f-tgl" oninput="onTglChange()">
+      </div>
+      <div>
+        <label>Hari</label>
+        <input type="text" id="f-hari" readonly class="input-readonly">
+      </div>
+      <div>
+        <label>Lembur yang Direncanakan</label>
+        <input type="text" id="f-plan" placeholder="Contoh: Loading Purwokerto, Makassar 2 Container...">
+      </div>
+      <div>
+        <label>Hasil Lembur</label>
+        <input type="text" id="f-hasil" placeholder="Diisi setelah selesai...">
+      </div>
+      <div>
+        <label>Jam Mulai *</label>
+        <input type="time" id="f-mulai" value="16:30" oninput="updateJamPreview()">
+      </div>
+      <div style="display:flex;gap:8px">
+        <div style="flex:1">
+          <label>Istirahat</label>
+          <select id="f-istirahat" onchange="updateJamPreview()">
+            <option value="0">Tanpa Istirahat</option>
+            <option value="0.5" selected>1/2 Jam</option>
+            <option value="1">1 Jam</option>
+            <option value="1.5">1,5 Jam</option>
+          </select>
+        </div>
+        <div style="flex:1">
+          <label>Jam Selesai *</label>
+          <input type="time" id="f-selesai" value="22:15" oninput="updateJamPreview()">
+        </div>
+      </div>
+    </div>
+    <div class="jam-preview" id="jam-preview">Total jam akan dihitung otomatis</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Daftar Karyawan yang Lembur</div>
+    <div style="display:flex;gap:6px;font-size:11px;color:var(--text-muted);padding:4px 0 10px;font-weight:600;border-bottom:1px solid var(--border-light);margin-bottom:8px">
+      <div style="flex:2">Nama Karyawan</div>
+      <div style="flex:2">Bagian / Status</div>
+      <div style="width:34px"></div>
+    </div>
+    <div id="name-rows"></div>
+    <button class="btn" style="width:100%;margin-top:8px;border-style:dashed;font-size:13px" onclick="addNameRow()">
+      + Tambah Karyawan Lagi
+    </button>
+    <div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end">
+      <button class="btn" onclick="resetLemburForm()">Reset Form</button>
+      <button class="btn btn-primary" id="btn-save-lembur">Simpan Semua</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-head" style="margin-bottom:12px">
+      <span style="font-size:13px;font-weight:600">Riwayat Lembur — <span id="tbl-div">—</span></span>
+    </div>
+    <div class="filter-row">
+      <div class="fg"><label>Filter Tanggal</label><input type="date" id="fil-tgl" onchange="loadAndRenderLemburTable(window._activDiv)"></div>
+      <div class="fg"><label>Filter Karyawan</label><input type="text" id="fil-nama" placeholder="Nama..." oninput="renderLemburTable(window._activDiv)"></div>
+      <button class="btn btn-sm" onclick="document.getElementById('fil-tgl').value='';document.getElementById('fil-nama').value='';loadAndRenderLemburTable(window._activDiv)">Reset</button>
+    </div>
+    <table>
+      <thead><tr><th>Tanggal</th><th>Nama</th><th>Bagian</th><th>Direncanakan</th><th>Mulai</th><th>Istirahat</th><th>Selesai</th><th>Total Jam</th><th>Upah</th><th>Hasil</th><th></th></tr></thead>
+      <tbody id="lembur-tbody"><tr><td colspan="11" class="empty">Memuat...</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ===== REKAP & EXPORT ===== -->
+<div class="page" id="page-rekap">
+  <div class="section-head"><h2>Rekap & Export</h2></div>
+  <div class="card">
+    <div class="tab-row">
+      <button class="tab active" data-tab="periode" onclick="switchRekapTab('periode')">Per Periode</button>
+      <button class="tab" data-tab="tanggal" onclick="switchRekapTab('tanggal')">Per Tanggal</button>
+    </div>
+    <div id="rtab-periode">
+      <div class="grid2" style="gap:12px;margin-bottom:14px">
+        <div><label>Dari Tanggal</label><input type="date" id="r-dari"></div>
+        <div><label>Sampai Tanggal</label><input type="date" id="r-sampai"></div>
+      </div>
+    </div>
+    <div id="rtab-tanggal" style="display:none">
+      <div style="max-width:240px;margin-bottom:14px"><label>Tanggal</label><input type="date" id="r-tgl1"></div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn" onclick="handlePreviewRekap(window._activDiv)">Preview</button>
+      <button class="btn btn-primary" onclick="handlePrintRekap(window._activDiv)">🖨 Print / PDF (Form HRD-34)</button>
+      <button class="btn btn-green" onclick="handleExportExcel(window._activDiv)">📊 Export Excel (FTW + MTD)</button>
+    </div>
+  </div>
+  <div id="rekap-preview-area" style="display:none">
+    <div class="card">
+      <div class="card-title">Preview Rekap Lembur</div>
+      <div id="rekap-preview-content"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== KARYAWAN ===== -->
+<div class="page" id="page-karyawan">
+  <div class="section-head">
+    <h2>Database Karyawan — <span id="kar-div-title">—</span></h2>
+    <button class="btn btn-primary" onclick="showKarForm(window._activDiv)">+ Tambah Karyawan</button>
+  </div>
+  <div class="card" id="kar-form-card" style="display:none">
+    <div class="card-title" id="kar-form-title">Tambah Karyawan</div>
+    <div id="kar-alert"></div>
+    <div class="grid3" style="gap:11px">
+      <div><label>NIK *</label><input type="text" id="k-nik" placeholder="Nomor Induk Karyawan"></div>
+      <div><label>Nama Lengkap *</label><input type="text" id="k-nama" placeholder="Nama lengkap"></div>
+      <div><label>Jabatan</label><input type="text" id="k-jabatan" placeholder="Jabatan"></div>
+      <div><label>Bagian / Seksi</label><input type="text" id="k-bagian" placeholder="Bagian"></div>
+      <div>
+        <label>Status Karyawan *</label>
+        <select id="k-status"><option>PKWT</option><option>PKWTT</option><option>Outsourcing</option><option>Magang</option></select>
+      </div>
+      <div>
+        <label>Jenis Kelamin</label>
+        <select id="k-jk"><option>Laki-laki</option><option>Perempuan</option></select>
+      </div>
+      <div><label>Tempat Lahir</label><input type="text" id="k-ttlk" placeholder="Kota kelahiran"></div>
+      <div><label>Tanggal Lahir</label><input type="date" id="k-ttlt"></div>
+      <div><label>Tanggal Masuk Kerja</label><input type="date" id="k-masuk"></div>
+      <div><label>No. WhatsApp</label><input type="text" id="k-wa" placeholder="628xxxxxxxxx"></div>
+      <div><label>Email</label><input type="email" id="k-email" placeholder="email@domain.com"></div>
+      <div><label>Alamat</label><input type="text" id="k-alamat" placeholder="Alamat rumah"></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:14px;justify-content:flex-end">
+      <button class="btn" onclick="cancelKarForm()">Batal</button>
+      <button class="btn btn-primary" onclick="handleSaveKaryawan(window._activDiv)">Simpan</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="filter-row">
+      <div class="fg"><label>Cari</label><input type="text" id="kar-search" placeholder="Nama, NIK, bagian..." oninput="renderKarTable(window._activDiv)"></div>
+      <div class="fg">
+        <label>Filter Status</label>
+        <select id="kar-fil-status" onchange="renderKarTable(window._activDiv)">
+          <option value="">Semua Status</option>
+          <option>PKWT</option><option>PKWTT</option><option>Outsourcing</option><option>Magang</option>
+        </select>
+      </div>
+    </div>
+    <table>
+      <thead><tr><th>NIK</th><th>Nama</th><th>Jabatan</th><th>Bagian</th><th>Status</th><th>No. WA</th><th>Tgl Masuk</th><th>Aksi</th></tr></thead>
+      <tbody id="kar-tbody"><tr><td colspan="8" class="empty">Memuat...</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ===== PENGATURAN ===== -->
+<div class="page" id="page-pengaturan">
+  <div class="section-head"><h2>Pengaturan</h2></div>
+  <div class="card" style="max-width:520px">
+    <div class="card-title">UMR Kabupaten Bogor</div>
+    <p class="small text-muted" style="margin-bottom:14px;line-height:1.6">
+      Rumus upah lembur: <strong>UMR ÷ 21 hari ÷ 8 jam × total jam lembur</strong><br>
+      Data lembur yang sudah tersimpan <strong>tidak akan berubah</strong> jika UMR diupdate.
+    </p>
+    <div id="umr-alert"></div>
+    <div style="display:flex;gap:8px;align-items:flex-end;margin-bottom:16px">
+      <div style="flex:1"><label>Nilai UMR (Rp)</label><input type="number" id="umr-input" placeholder="Contoh: 4906448"></div>
+      <div><label>Berlaku Mulai</label><input type="date" id="umr-tgl" style="width:150px"></div>
+      <button class="btn btn-primary" onclick="handleSaveUMR()">Simpan</button>
+    </div>
+    <div style="background:var(--bg-secondary);border-radius:var(--radius-sm);padding:14px;border:1px solid var(--border-light)">
+      <div class="small text-muted" style="font-weight:600;margin-bottom:10px">Riwayat UMR</div>
+      <div id="umr-history"></div>
+    </div>
+    <div style="margin-top:12px;padding:10px 13px;background:var(--primary-light);border-radius:var(--radius-sm);font-size:12px;color:var(--primary-dark)" id="umr-aktif-info">
+      Memuat...
+    </div>
+  </div>
+
+  <div class="card" style="max-width:520px">
+    <div class="card-title">Ganti Password Divisi</div>
+    <p class="small text-muted" style="margin-bottom:14px">Ubah password di file <code>js/firebase-config.js</code> pada bagian <code>DIVISI_CREDENTIALS</code>, lalu re-deploy ke Vercel.</p>
+    <div style="background:var(--bg-secondary);border-radius:var(--radius-sm);padding:12px;font-size:12px;font-family:monospace;border:1px solid var(--border-light)">
+      FGWH: "fgwh2025"<br>
+      RMWH: "rmwh2025"<br>
+      PMWH: "pmwh2025"<br>
+      ADMIN: "admin2025"
+    </div>
+  </div>
+</div>
+
+</div><!-- /content -->
+
+<!-- ===== SCRIPTS ===== -->
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<!-- Chart.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<!-- XLSX -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<!-- App scripts -->
+<script src="js/firebase-config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/umr.js"></script>
+<script src="js/karyawan.js"></script>
+<script src="js/lembur.js"></script>
+<script src="js/rekap.js"></script>
+<script src="js/dashboard.js"></script>
+
+<script>
+// ============================================================
+// APP INIT
+// ============================================================
+window._activDiv = null;
+
+const divisi = requireAuth();
+if (!divisi) throw new Error('Not authenticated');
+
+window._activDiv = divisi === 'ADMIN' ? 'FGWH' : divisi;
+document.getElementById('top-div-badge').textContent = divisi;
+
+// Admin: tampilkan selector & menu pengaturan
+if (divisi === 'ADMIN') {
+  document.getElementById('div-selector').style.display = 'flex';
+  document.getElementById('nav-pengaturan').style.display = '';
+}
+
+function setActiveDiv(d) {
+  window._activDiv = d;
+  document.querySelectorAll('.div-opt').forEach(b => b.classList.toggle('active', b.textContent === d));
+  document.getElementById('top-div-badge').textContent = 'ADMIN → ' + d;
+  refreshCurrentPage();
+}
+
+function gotoPage(p, btn) {
+  document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + p).classList.add('active');
+  if (btn) btn.classList.add('active');
+  refreshPage(p);
+}
+
+function refreshCurrentPage() {
+  const activePage = document.querySelector('.page.active');
+  if (!activePage) return;
+  const pageId = activePage.id.replace('page-', '');
+  refreshPage(pageId);
+}
+
+async function refreshPage(p) {
+  const d = window._activDiv;
+  if (p === 'dashboard') {
+    renderDashboard(d);
+  } else if (p === 'input') {
+    document.getElementById('inp-div-title').textContent = d;
+    document.getElementById('tbl-div').textContent = d;
+    document.getElementById('tgl-info').textContent = new Date().toLocaleDateString('id-ID', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+    document.getElementById('btn-save-lembur').onclick = () => handleSaveLembur(d);
+    await loadKaryawan(d);
+    initNameRows();
+    await loadAndRenderLemburTable(d);
+    updateJamPreview();
+  } else if (p === 'karyawan') {
+    initKaryawanPage(d);
+  } else if (p === 'pengaturan') {
+    renderUMRPage();
+    document.getElementById('umr-tgl').value = getToday();
+  } else if (p === 'rekap') {
+    const today = getToday();
+    document.getElementById('r-dari').value = getMonthStart();
+    document.getElementById('r-sampai').value = today;
+    document.getElementById('r-tgl1').value = today;
+  }
+}
+
+// Init
+(async () => {
+  const today = getToday();
+  document.getElementById('f-tgl').value = today;
+  document.getElementById('f-hari').value = HARI[new Date(today + 'T00:00:00').getDay()];
+  document.getElementById('r-dari').value = getMonthStart();
+  document.getElementById('r-sampai').value = today;
+  document.getElementById('r-tgl1').value = today;
+  await refreshPage('dashboard');
+})();
+</script>
+</body>
+</html>

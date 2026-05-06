@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LemburMonitor — Login</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="login-wrap">
+  <div class="login-card">
+    <div class="login-logo">Lembur<span>Monitor</span></div>
+    <div class="login-sub">Sistem Monitoring Lembur Karyawan</div>
+
+    <div id="login-alert"></div>
+
+    <label>Divisi</label>
+    <select id="login-divisi">
+      <option value="">— Pilih Divisi —</option>
+      <option value="FGWH">FGWH</option>
+      <option value="RMWH">RMWH</option>
+      <option value="PMWH">PMWH</option>
+      <option value="ADMIN">Admin (Semua Divisi)</option>
+    </select>
+
+    <label>Password</label>
+    <input type="password" id="login-password" placeholder="Password divisi"
+      onkeydown="if(event.key==='Enter') handleLogin()">
+
+    <button class="btn btn-primary" onclick="handleLogin()">Masuk</button>
+
+    <div class="login-footer">PT. &mdash; Logistik &nbsp;|&nbsp; LemburMonitor v2.0</div>
+  </div>
+</div>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<script src="js/firebase-config.js"></script>
+<script src="js/auth.js"></script>
+<script>
+  // Kalau sudah login, langsung ke dashboard
+  if (getSession()) window.location.href = 'dashboard.html';
+
+  function handleLogin() {
+    const divisi = document.getElementById('login-divisi').value;
+    const password = document.getElementById('login-password').value;
+    if (!divisi) { showLoginAlert('Pilih divisi terlebih dahulu'); return; }
+    if (!password) { showLoginAlert('Masukkan password'); return; }
+    if (login(divisi, password)) {
+      window.location.href = 'dashboard.html';
+    } else {
+      showLoginAlert('Password salah. Coba lagi.');
+    }
+  }
+
+  function showLoginAlert(msg) {
+    document.getElementById('login-alert').innerHTML =
+      `<div class="alert alert-error">${msg}</div>`;
+    setTimeout(() => document.getElementById('login-alert').innerHTML = '', 3000);
+  }
+</script>
+</body>
+</html>
